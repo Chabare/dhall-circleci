@@ -1,0 +1,74 @@
+version: 2
+jobs:
+  run:
+    docker:
+      - image: python:3.7-slim
+    steps:
+      - checkout
+      - run: pip install -r requirements.txt
+
+      # Write the "version" into the main file
+      - run: sed -i -e "s/{{VERSION}}/$CIRCLE_SHA1/" main.py
+      # Dump the bot token into a secrets.json
+      - run: echo "{\"token\":\"$BOT_TOKEN\"}" > secrets.json
+
+      - run: python -O main.py --testrun
+  build:
+    docker:
+      - image: docker:18.09-git
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run: docker login -u $DOCKER_USER -p $DOCKER_PASS
+
+      - run: sed -i -e "s/{{VERSION}}/$CIRCLE_SHA1/" main.py
+
+      # build the application image
+      - run: docker build -t openalcoholics/regular_dicers_bot:latest-$CIRCLE_BRANCH .
+
+      # deploy the image
+      - run: docker push openalcoholics/regular_dicers_bot:latest-$CIRCLE_BRANCH
+
+  deploy:
+    docker:
+      - image: byrnedo/alpine-curl:latest
+    # Update server image
+    steps:
+      - run: curl -L "http://update-bot.openalcolholics.group/?key=$UPDATE_KEY"
+
+  markdown_lint:
+    docker:
+      - image: 06kellyjac/markdownlint-cli:0.13.0-alpine
+    steps:
+      - checkout
+      - run: markdownlint README.md
+
+  pdoc:
+    docker:
+      - image: python:3.7-slim
+    steps:
+      - checkout
+      - run: pip install -r requirements.txt
+      - run: python setup.py install
+      - run: pdoc --html dicers_bot
+      - store_artifacts:
+          path: html/dicers_bot
+
+workflows:
+  version: 2
+  build_and_deploy:
+    jobs:
+      - markdown_lint
+      - run
+      - pdoc
+      - build:
+          requires:
+            - run
+          filters:
+            branches:
+              only:
+                - develop
+                - master
+      - deploy:
+          requires:
+            - build
