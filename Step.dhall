@@ -1,5 +1,11 @@
-    let RunStep = ./Step/RunStep.dhall
-in
+let RunStep = ./Step/RunStep.dhall
 
-< Checkout : Text | Run : { run : RunStep } >
+let Artifact = ./Artifact.dhall
 
+in  < Checkout :
+        Text
+    | Run :
+        { run : RunStep }
+    | Artifacts :
+        { store_artifacts : List Artifact }
+    >
