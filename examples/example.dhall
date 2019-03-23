@@ -63,7 +63,7 @@
 in {
     version = 2
     , jobs = [ runJob, buildJob, deployJob, markdownJob, pdocJob ]
-    , workflows = Some {
+    {-, workflows = Some {
         version = 2
         , workflows = [
             (workflow "build_and_deploy" {jobs = [
@@ -72,5 +72,5 @@ in {
                 , (workflowJob "deploy" (Some < Name : Text | Job = { requires = (Some ["build"]), filters = None { branches : { only : List Text } } } >))
             ]})
         ]
-    }
+    }-}
 } : TopLevel
